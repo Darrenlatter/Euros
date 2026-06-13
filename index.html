@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UEFA Euro 2028™ Live Sweepstake Engine</title>
+<style>
+:root {
+  --primary: #0052cc;
+  --secondary: #078045;
+  --dark: #1a202c;
+  --light: #f7fafc;
+  --border: #e2e8f0;
+  --accent: #e53e3e;
+  --gold: #d69e2e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background-color: var(--light); color: var(--dark); padding: 20px; }
+header { background: linear-gradient(135deg, var(--primary), #002266); color: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; text-align: center; }
+h1 { font-size: 2.2rem; margin-bottom: 8px; }
+.container { max-width: 1400px; margin: 0 auto; }
+.card { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+.card h2 { font-size: 1.4rem; margin-bottom: 15px; border-bottom: 2px solid var(--light); padding-bottom: 8px; color: var(--primary); }
+.input-group { display: flex; gap: 8px; margin-bottom: 15px; max-width: 500px; }
+input[type="text"], select, textarea { padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+input[type="text"] { flex: 1; }
+select { flex: 1; background: white; cursor: pointer; }
+textarea { font-family: monospace; font-size: 0.85rem; height: 120px; width: 100%; max-width: 600px; resize: none; margin-top: 8px; display: block; }
+button { background-color: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+button:hover { background-color: #0041a3; }
+button:disabled { background-color: #cbd5e0; cursor: not-allowed; }
+button.secondary { background-color: var(--secondary); }
+button.secondary:hover { background-color: #056134; }
+button.danger { background-color: var(--accent); }
+button.danger:hover { background-color: #c53030; }
+button.gold { background-color: var(--gold); color: white; }
+button.gold:hover { background-color: #b78725; }
+.tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; overflow-x: auto; }
+.tab-btn { background: none; color: #4a5568; border: none; padding: 10px 20px; cursor: pointer; font-size: 1rem; border-radius: 6px; white-space: nowrap; font-weight: 600; transition: all 0.2s; }
+.tab-btn:hover { background-color: #edf2f7; }
+.tab-btn.active { background-color: var(--primary); color: white; }
+.tab-btn.setup-tab { border: 1px dashed var(--gold); color: #b78725; }
+.assignments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+.group-container { display: flex; flex-direction: column; gap: 10px; }
+.staging-list { list-style: none; margin-bottom: 20px; max-width: 500px; max-height: 250px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; background: white; }
+.staging-item { padding: 10px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 0.95rem; }
+.staging-item:last-child { border-bottom: none; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+th { background-color: #f7fafc; font-weight: 600; color: #4a5568; }
+tr.qualify-direct { border-left: 4px solid var(--secondary); background-color: #f0fff4; }
+tr.qualify-wildcard { border-left: 4px solid var(--gold); background-color: #fffaf0; }
+.team-cell { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.flag { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; border: 1px solid #ddd; display: inline-block; vertical-align: middle; }
+.team-badge { font-weight: 600; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; background: #edf2f7; display: inline-flex; align-items: center; gap: 8px; width: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+.fixture-list { display: flex; flex-direction: column; gap: 10px; }
+.match-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: white; border: 1px solid var(--border); border-radius: 8px; }
+.match-team { width: 38%; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.match-team.home { justify-content: flex-end; text-align: right; }
+.match-team.away { justify-content: flex-start; text-align: left; }
+.match-scores { width: 24%; display: flex; justify-content: center; align-items: center; gap: 12px; font-weight: bold; font-size: 1.1rem; color: #2d3748; }
+.bracket-wrapper { display: flex; gap: 25px; overflow-x: auto; padding: 10px 0; }
+.bracket-round { min-width: 280px; display: flex; flex-direction: column; justify-content: space-around; gap: 15px; }
+.bracket-round-title { font-weight: bold; text-align: center; padding-bottom: 10px; border-bottom: 2px solid var(--primary); color: #2d3748; font-size: 1rem; margin-bottom: 10px; }
+.status-banner { padding: 15px; border-radius: 8px; background-color: #ebf8ff; color: #2b6cb0; font-size: 0.9rem; margin-bottom: 20px; font-weight: 500; border-left: 4px solid #3182ce; line-height: 1.4; }
+.live-pulse { display: inline-block; width: 8px; height: 8px; background-color: var(--secondary); border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%{transform:scale(0.9);opacity:1;} 50%{transform:scale(1.2);opacity:0.4;} 100%{transform:scale(0.9);opacity:1;} }
+.hidden { display: none !important; }
+/* Manual assignment */
+.manual-assign-section { margin-top: 24px; border-top: 2px solid var(--border); padding-top: 20px; }
+.manual-assign-section h3 { font-size: 1.1rem; color: var(--dark); margin-bottom: 6px; }
+.manual-assign-section p { font-size: 0.88rem; color: #718096; margin-bottom: 14px; line-height: 1.5; }
+.assign-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.assign-row label { font-size: 0.9rem; font-weight: 600; color: #4a5568; min-width: 60px; }
+.assign-summary { margin-top: 14px; background: #f7fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 0.88rem; max-height: 220px; overflow-y: auto; }
+.assign-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.assign-summary-row:last-child { border-bottom: none; }
+.assign-tag { background: #ebf8ff; color: #2b6cb0; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.82rem; }
+.assign-conflict { background: #fffaf0; border-left: 3px solid var(--gold); padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; color: #744210; margin-top: 8px; }
+.section-divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0; }
+.badge-manual { font-size: 0.7rem; background: #c6f6d5; color: #276749; padding: 2px 6px; border-radius: 10px; margin-left: 6px; font-weight: 600; }
+.badge-random { font-size: 0.7rem; background: #bee3f8; color: #2a69ac; padding: 2px 6px; border-radius: 10px; margin-left: 6px; font-weight: 600; }
+/* Data source note */
+.data-note { font-size: 0.78rem; color: #718096; margin-top: 6px; }
+.data-note a { color: var(--primary); }
+</style>
+</head>
+<body>
+<header>
+  <h1>UEFA Euro 2028™ Live Sweepstake Engine</h1>
+  <p><span class="live-pulse"></span> Dynamic Real-Time Tournament Feed</p>
+</header>
+<div class="container">
+  <div class="tabs" id="main-tabs-nav">
+    <button class="tab-btn setup-tab active" id="btn-tab-setup" onclick="switchTab('setup')">Generator Staging</button>
+    <button class="tab-btn" id="btn-tab-assignments" onclick="switchTab('assignments')">Pool Assignments</button>
+    <button class="tab-btn" id="btn-tab-groups" onclick="switchTab('groups')">Group Standings</button>
+    <button class="tab-btn" id="btn-tab-fixtures" onclick="switchTab('fixtures')">Live Match Feeds</button>
+    <button class="tab-btn" id="btn-tab-bracket" onclick="switchTab('bracket')">Knockout Finals Tree</button>
+  </div>
+
+  <div id="api-status-banner" class="status-banner">Verifying system initialization parameters...</div>
+
+  <div id="tab-setup" class="tab-content">
+    <div class="card">
+      <h2>Sweepstake Initialization Wizard</h2>
+      <p style="font-size:0.95rem;color:#4a5568;margin-bottom:15px;">
+        Add participants below. If fewer than 24 are entered, teams are distributed evenly so every team is assigned.
+        You can also manually assign specific teams to specific participants before generating.
+      </p>
+      <div class="input-group">
+        <input type="text" id="player-name" placeholder="Type participant name...">
+        <button id="add-player-btn">Add Player</button>
+      </div>
+      <div style="margin-bottom:15px;font-size:0.9rem;font-weight:bold;">
+        Total Pool Entry Count: <span id="player-count" style="color:var(--primary);">0</span> / 24
+      </div>
+      <ul id="staging-players-list" class="staging-list"></ul>
+
+      <div class="manual-assign-section">
+        <h3>🎯 Manual Team Assignments <span style="font-size:0.8rem;color:#718096;font-weight:normal;">(optional)</span></h3>
+        <p>Pin specific teams to specific participants before generating. Pinned assignments are locked in — the remaining teams are distributed randomly.</p>
+        <div class="assign-row">
+          <label>Team</label>
+          <select id="manual-team-select" style="min-width:200px;"><option value="">— Select a team —</option></select>
+          <label>→</label>
+          <select id="manual-player-select" style="min-width:180px;"><option value="">— Select participant —</option></select>
+          <button class="gold" onclick="addManualAssignment()">📌 Pin Assignment</button>
+        </div>
+        <div id="assign-conflict-msg" class="assign-conflict hidden"></div>
+        <div id="assign-summary" class="assign-summary hidden">
+          <strong style="font-size:0.85rem;color:#4a5568;display:block;margin-bottom:8px;">Pinned assignments (<span id="pinned-count">0</span>):</strong>
+          <div id="assign-summary-rows"></div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="danger" onclick="clearAllManualAssignments()" style="font-size:0.85rem;padding:8px 14px;">🗑 Clear All Pins</button>
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <button id="generate-sweep-btn" class="secondary" style="padding:14px 24px;" disabled>🎲 Generate Assignments Code String</button>
+      <div id="output-block" class="hidden" style="margin-top:25px;border-top:2px solid var(--light);padding-top:20px;">
+        <p style="font-size:0.9rem;color:var(--secondary);line-height:1.4;">
+          <strong>Success! Code Generation Complete.</strong><br>
+          Copy the block below, save it into a new file called <code>sweepstake_data.txt</code> in the same folder in your GitHub repository, and push the changes.
+        </p>
+        <textarea id="output-string-payload" readonly onclick="this.select()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-assignments" class="tab-content hidden">
+    <div class="
