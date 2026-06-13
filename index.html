@@ -102,6 +102,7 @@ tr.qualify-wildcard { border-left: 4px solid var(--gold); background-color: #fff
 
   <div id="api-status-banner" class="status-banner">Verifying system initialization parameters...</div>
 
+  <!-- TAB 1 – SETUP -->
   <div id="tab-setup" class="tab-content">
     <div class="card">
       <h2>Sweepstake Initialization Wizard</h2>
@@ -118,6 +119,7 @@ tr.qualify-wildcard { border-left: 4px solid var(--gold); background-color: #fff
       </div>
       <ul id="staging-players-list" class="staging-list"></ul>
 
+      <!-- MANUAL ASSIGNMENT -->
       <div class="manual-assign-section">
         <h3>🎯 Manual Team Assignments <span style="font-size:0.8rem;color:#718096;font-weight:normal;">(optional)</span></h3>
         <p>Pin specific teams to specific participants before generating. Pinned assignments are locked in — the remaining teams are distributed randomly.</p>
@@ -144,12 +146,567 @@ tr.qualify-wildcard { border-left: 4px solid var(--gold); background-color: #fff
       <div id="output-block" class="hidden" style="margin-top:25px;border-top:2px solid var(--light);padding-top:20px;">
         <p style="font-size:0.9rem;color:var(--secondary);line-height:1.4;">
           <strong>Success! Code Generation Complete.</strong><br>
-          Copy the block below, save it into a new file called <code>sweepstake_data.txt</code> in the same folder in your GitHub repository, and push the changes.
+          Copy the block below and paste it into <code>const SAVED_SWEEPSTAKE_DATA = "PASTE_GENERATED_STRING_HERE";</code> around line 10.
         </p>
         <textarea id="output-string-payload" readonly onclick="this.select()"></textarea>
       </div>
     </div>
   </div>
 
+  <!-- TAB 2 – ASSIGNMENTS -->
   <div id="tab-assignments" class="tab-content hidden">
-    <div class="
+    <div class="assignments-grid" id="pool-assignments-ui"></div>
+  </div>
+
+  <!-- TAB 3 – GROUPS -->
+  <div id="tab-groups" class="tab-content hidden">
+    <div class="groups-grid" id="groups-tables-ui"></div>
+  </div>
+
+  <!-- TAB 4 – FIXTURES -->
+  <div id="tab-fixtures" class="tab-content hidden">
+    <div class="card">
+      <h2>Tournament Match Ledger</h2>
+      <div class="fixture-list" id="group-fixtures-ui"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5 – BRACKET -->
+  <div id="tab-bracket" class="tab-content hidden">
+    <div class="bracket-wrapper" id="bracket-tree-ui"></div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// CONFIGURATION: paste generated string here for GitHub Pages persistence
+const SAVED_SWEEPSTAKE_DATA = "eyJwbGF5ZXJzIjpbImFzZGEiLCJhc2QiLCJhc2YiLCJzZGdzIiwiZGciLCJnIiwiZ3Nnc2RnIl0sImFzc2lnbm1lbnRzIjp7IkFsYmFuaWEiOiJhc2RhIiwiUG9sYW5kIjoiYXNkIiwiQ3plY2hpYSI6ImFzZiIsIkRlbm1hcmsiOiJzZGdzIiwiU2NvdGxhbmQiOiJkZyIsIlBvcnR1Z2FsIjoiZyIsIlNlcmJpYSI6ImdzZ3NkZyIsIkh1bmdhcnkiOiJhc2RhIiwiU2xvdmFraWEiOiJhc2QiLCJTcGFpbiI6ImFzZiIsIlT8cmtpeWUiOiJzZGdzIiwiR2VvcmdpYSI6ImRnIiwiU2xvdmVuaWEiOiJnIiwiQ3JvYXRpYSI6ImdzZ3NkZyIsIlVrcmFpbmUiOiJhc2RhIiwiU3dpdHplcmxhbmQiOiJhc2QiLCJBdXN0cmlhIjoiYXNmIiwiR2VybWFueSI6InNkZ3MiLCJJdGFseSI6ImRnIiwiQmVsZ2l1bSI6ImciLCJOZXRoZXJsYW5kcyI6ImdzZ3NkZyIsIkZyYW5jZSI6ImFzZGEiLCJSb21hbmlhIjoiYXNkIiwiRW5nbGFuZCI6ImFzZiJ9LCJhc3NpZ25tZW50U291cmNlIjp7IkFsYmFuaWEiOiJyYW5kb20iLCJQb2xhbmQiOiJyYW5kb20iLCJDemVjaGlhIjoicmFuZG9tIiwiRGVubWFyayI6InJhbmRvbSIsIlNjb3RsYW5kIjoicmFuZG9tIiwiUG9ydHVnYWwiOiJyYW5kb20iLCJTZXJiaWEiOiJyYW5kb20iLCJIdW5nYXJ5IjoicmFuZG9tIiwiU2xvdmFraWEiOiJyYW5kb20iLCJTcGFpbiI6InJhbmRvbSIsIlT8cmtpeWUiOiJyYW5kb20iLCJHZW9yZ2lhIjoicmFuZG9tIiwiU2xvdmVuaWEiOiJyYW5kb20iLCJDcm9hdGlhIjoicmFuZG9tIiwiVWtyYWluZSI6InJhbmRvbSIsIlN3aXR6ZXJsYW5kIjoicmFuZG9tIiwiQXVzdHJpYSI6InJhbmRvbSIsIkdlcm1hbnkiOiJyYW5kb20iLCJJdGFseSI6InJhbmRvbSIsIkJlbGdpdW0iOiJyYW5kb20iLCJOZXRoZXJsYW5kcyI6InJhbmRvbSIsIkZyYW5jZSI6InJhbmRvbSIsIlJvbWFuaWEiOiJyYW5kb20iLCJFbmdsYW5kIjoicmFuZG9tIn0sImlzR2VuZXJhdGVkIjp0cnVlLCJncm91cE1hdGNoZXMiOlt7ImlkIjoiRy1BLTAtMSIsImdyb3VwIjoiQSIsImhvbWUiOiJHZXJtYW55IiwiYXdheSI6IlNjb3RsYW5kIn0seyJpZCI6IkctQS0wLTIiLCJncm91cCI6IkEiLCJob21lIjoiR2VybWFueSIsImF3YXkiOiJIdW5nYXJ5In0seyJpZCI6IkctQS0wLTMiLCJncm91cCI6IkEiLCJob21lIjoiR2VybWFueSIsImF3YXkiOiJTd2l0emVybGFuZCJ9LHsiaWQiOiJHLUEtMS0yIiwiZ3JvdXAiOiJBIiwiaG9tZSI6IlNjb3RsYW5kIiwiYXdheSI6Ikh1bmdhcnkifSx7ImlkIjoiRy1BLTEtMyIsImdyb3VwIjoiQSIsImhvbWUiOiJTY290bGFuZCIsImF3YXkiOiJTd2l0emVybGFuZCJ9LHsiaWQiOiJHLUEtMi0zIiwiZ3JvdXAiOiJBIiwiaG9tZSI6Ikh1bmdhcnkiLCJhd2F5IjoiU3dpdHplcmxhbmQifSx7ImlkIjoiRy1CLTAtMSIsImdyb3VwIjoiQiIsImhvbWUiOiJTcGFpbiIsImF3YXkiOiJDcm9hdGlhIn0seyJpZCI6IkctQi0wLTIiLCJncm91cCI6IkIiLCJob21lIjoiU3BhaW4iLCJhd2F5IjoiSXRhbHkifSx7ImlkIjoiRy1CLTAtMyIsImdyb3VwIjoiQiIsImhvbWUiOiJTcGFpbiIsImF3YXkiOiJBbGJhbmlhIn0seyJpZCI6IkctQi0xLTIiLCJncm91cCI6IkIiLCJob21lIjoiQ3JvYXRpYSIsImF3YXkiOiJJdGFseSJ9LHsiaWQiOiJHLUItMS0zIiwiZ3JvdXAiOiJCIiwiaG9tZSI6IkNyb2F0aWEiLCJhd2F5IjoiQWxiYW5pYSJ9LHsiaWQiOiJHLUItMi0zIiwiZ3JvdXAiOiJCIiwiaG9tZSI6Ikl0YWx5IiwiYXdheSI6IkFsYmFuaWEifSx7ImlkIjoiRy1DLTAtMSIsImdyb3VwIjoiQyIsImhvbWUiOiJTbG92ZW5pYSIsImF3YXkiOiJEZW5tYXJrIn0seyJpZCI6IkctQy0wLTIiLCJncm91cCI6IkMiLCJob21lIjoiU2xvdmVuaWEiLCJhd2F5IjoiU2VyYmlhIn0seyJpZCI6IkctQy0wLTMiLCJncm91cCI6IkMiLCJob21lIjoiU2xvdmVuaWEiLCJhd2F5IjoiRW5nbGFuZCJ9LHsiaWQiOiJHLUMtMS0yIiwiZ3JvdXAiOiJDIiwiaG9tZSI6IkRlbm1hcmsiLCJhd2F5IjoiU2VyYmlhIn0seyJpZCI6IkctQy0xLTMiLCJncm91cCI6IkMiLCJob21lIjoiRGVubWFyayIsImF3YXkiOiJFbmdsYW5kIn0seyJpZCI6IkctQy0yLTMiLCJncm91cCI6IkMiLCJob21lIjoiU2VyYmlhIiwiYXdheSI6IkVuZ2xhbmQifSx7ImlkIjoiRy1ELTAtMSIsImdyb3VwIjoiRCIsImhvbWUiOiJQb2xhbmQiLCJhd2F5IjoiTmV0aGVybGFuZHMifSx7ImlkIjoiRy1ELTAtMiIsImdyb3VwIjoiRCIsImhvbWUiOiJQb2xhbmQiLCJhd2F5IjoiQXVzdHJpYSJ9LHsiaWQiOiJHLUQtMC0zIiwiZ3JvdXAiOiJEIiwiaG9tZSI6IlBvbGFuZCIsImF3YXkiOiJGcmFuY2UifSx7ImlkIjoiRy1ELTEtMiIsImdyb3VwIjoiRCIsImhvbWUiOiJOZXRoZXJsYW5kcyIsImF3YXkiOiJBdXN0cmlhIn0seyJpZCI6IkctRC0xLTMiLCJncm91cCI6IkQiLCJob21lIjoiTmV0aGVybGFuZHMiLCJhd2F5IjoiRnJhbmNlIn0seyJpZCI6IkctRC0yLTMiLCJncm91cCI6IkQiLCJob21lIjoiQXVzdHJpYSIsImF3YXkiOiJGcmFuY2UifSx7ImlkIjoiRy1FLTAtMSIsImdyb3VwIjoiRSIsImhvbWUiOiJCZWxnaXVtIiwiYXdheSI6IlNsb3Zha2lhIn0seyJpZCI6IkctRS0wLTIiLCJncm91cCI6IkUiLCJob21lIjoiQmVsZ2l1bSIsImF3YXkiOiJSb21hbmlhIn0seyJpZCI6IkctRS0wLTMiLCJncm91cCI6IkUiLCJob21lIjoiQmVsZ2l1bSIsImF3YXkiOiJVa3JhaW5lIn0seyJpZCI6IkctRS0xLTIiLCJncm91cCI6IkUiLCJob21lIjoiU2xvdmFraWEiLCJhd2F5IjoiUm9tYW5pYSJ9LHsiaWQiOiJHLUUtMS0zIiwiZ3JvdXAiOiJFIiwiaG9tZSI6IlNsb3Zha2lhIiwiYXdheSI6IlVrcmFpbmUifSx7ImlkIjoiRy1FLTItMyIsImdyb3VwIjoiRSIsImhvbWUiOiJSb21hbmlhIiwiYXdheSI6IlVrcmFpbmUifSx7ImlkIjoiRy1GLTAtMSIsImdyb3VwIjoiRiIsImhvbWUiOiJU/HJraXllIiwiYXdheSI6Ikdlb3JnaWEifSx7ImlkIjoiRy1GLTAtMiIsImdyb3VwIjoiRiIsImhvbWUiOiJU/HJraXllIiwiYXdheSI6IlBvcnR1Z2FsIn0seyJpZCI6IkctRi0wLTMiLCJncm91cCI6IkYiLCJob21lIjoiVPxya2l5ZSIsImF3YXkiOiJDemVjaGlhIn0seyJpZCI6IkctRi0xLTIiLCJncm91cCI6IkYiLCJob21lIjoiR2VvcmdpYSIsImF3YXkiOiJQb3J0dWdhbCJ9LHsiaWQiOiJHLUYtMS0zIiwiZ3JvdXAiOiJGIiwiaG9tZSI6Ikdlb3JnaWEiLCJhd2F5IjoiQ3plY2hpYSJ9LHsiaWQiOiJHLUYtMi0zIiwiZ3JvdXAiOiJGIiwiaG9tZSI6IlBvcnR1Z2FsIiwiYXdheSI6IkN6ZWNoaWEifV0sImtvTWF0Y2hlcyI6eyJyMTYiOlt7ImlkIjoiUjE2LTAiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTEiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTIiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTMiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTQiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTUiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTYiLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUjE2LTciLCJ0eXBlIjoicjE2IiwiaG9tZSI6IiIsImF3YXkiOiIifV0sInFmIjpbeyJpZCI6IlFGLTAiLCJ0eXBlIjoicWYiLCJob21lIjoiIiwiYXdheSI6IiJ9LHsiaWQiOiJRRi0xIiwidHlwZSI6InFmIiwiaG9tZSI6IiIsImF3YXkiOiIifSx7ImlkIjoiUUYtMiIsInR5cGUiOiJxZiIsImhvbWUiOiIiLCJhd2F5IjoiIn0seyJpZCI6IlFGLTMiLCJ0eXBlIjoicWYiLCJob21lIjoiIiwiYXdheSI6IiJ9XSwic2YiOlt7ImlkIjoiU0YtMCIsInR5cGUiOiJzZiIsImhvbWUiOiIiLCJhd2F5IjoiIn0seyJpZCI6IlNGLTEiLCJ0eXBlIjoic2YiLCJob21lIjoiIiwiYXdheSI6IiJ9XSwiZmluYWwiOlt7ImlkIjoiRklOQUwtMCIsInR5cGUiOiJmaW5hbCIsImhvbWUiOiIiLCJhd2F5IjoiIn1dfX0=";
+// =========================================================================
+
+// ─── DATA SOURCE ──────────────────────────────────────────────────────────
+// openfootball/euro.json — free, no API key, updated daily during tournament
+const OPENFOOTBALL_URL = 'https://raw.githubusercontent.com/openfootball/euro.json/master/2024/euro.json';
+
+// Maps openfootball team names → our internal names
+const TEAM_NAME_MAP = {
+  'Czech Republic': 'Czechia',
+  'Turkey':         'Türkiye',
+};
+
+function normaliseName(name) {
+  return TEAM_NAME_MAP[name] || name;
+}
+
+const NATIONS_STAGING = {
+  A: ["Germany", "Scotland", "Hungary", "Switzerland"],
+  B: ["Spain", "Croatia", "Italy", "Albania"],
+  C: ["Slovenia", "Denmark", "Serbia", "England"],
+  D: ["Poland", "Netherlands", "Austria", "France"],
+  E: ["Belgium", "Slovakia", "Romania", "Ukraine"],
+  F: ["Türkiye", "Georgia", "Portugal", "Czechia"]
+};
+
+const FLAG_CODES = {
+  "Germany":"de", "Scotland":"gb-sct", "Hungary":"hu", "Switzerland":"ch",
+  "Spain":"es", "Croatia":"hr", "Italy":"it", "Albania":"al",
+  "Slovenia":"si", "Denmark":"dk", "Serbia":"rs", "England":"gb-eng",
+  "Poland":"pl", "Netherlands":"nl", "Austria":"at", "France":"fr",
+  "Belgium":"be", "Slovakia":"sk", "Romania":"ro", "Ukraine":"ua",
+  "Türkiye":"tr", "Georgia":"ge", "Portugal":"pt", "Czechia":"cz"
+};
+
+const ALL_TEAMS_FLAT = Object.values(NATIONS_STAGING).flat();
+
+let manualPins = {};
+let state = {
+  players: [], assignments: {}, assignmentSource: {},
+  isGenerated: false, groupMatches: [],
+  koMatches: { r16:[], qf:[], sf:[], final:[] }
+};
+let liveScoresCache = {};  // key: "HomeTeam-AwayTeam" → { homeScore, awayScore, status, homePen, awayPen }
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+initAppEngine();
+
+function initAppEngine() {
+  if (SAVED_SWEEPSTAKE_DATA !== "PASTE_GENERATED_STRING_HERE" && SAVED_SWEEPSTAKE_DATA.trim() !== "") {
+    try {
+      state = JSON.parse(atob(SAVED_SWEEPSTAKE_DATA));
+      document.getElementById('btn-tab-setup').classList.add('hidden');
+      const b = document.getElementById('api-status-banner');
+      b.style.backgroundColor = "#ebf8ff"; b.style.color = "#2b6cb0";
+      b.innerHTML = `<span class="live-pulse"></span> <strong>Loading:</strong> Fetching match results…`;
+      switchTab('assignments');
+      fetchLiveScores();
+      setInterval(fetchLiveScores, 300000);
+    } catch(e) {
+      const b = document.getElementById('api-status-banner');
+      b.innerText = "Initialization Failure: Saved data payload could not be decoded.";
+      b.style.backgroundColor = "#fff5f5"; b.style.borderLeftColor = "#fc8181";
+    }
+  } else {
+    const b = document.getElementById('api-status-banner');
+    b.style.backgroundColor = "#f0fff4";
+    b.style.color = "#276749";
+    b.style.borderLeftColor = "var(--secondary)";
+    b.innerHTML = "⚙️ <strong>Setup Mode:</strong> Add players, optionally pin manual team assignments, then click Generate.";
+    document.getElementById('add-player-btn').onclick = addSetupPlayer;
+    document.getElementById('player-name').onkeypress = e => { if(e.key==='Enter') addSetupPlayer(); };
+    document.getElementById('generate-sweep-btn').onclick = buildDistributionsString;
+    populateTeamDropdown();
+    switchTab('setup');
+  }
+}
+
+// ─── PLAYER MANAGEMENT ────────────────────────────────────────────────────
+function addSetupPlayer() {
+  const inp = document.getElementById('player-name');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (state.players.includes(name)) { alert(`"${name}" is already in the list.`); return; }
+  state.players.push(name);
+  inp.value = '';
+  document.getElementById('player-count').innerText = state.players.length;
+  document.getElementById('generate-sweep-btn').disabled = false;
+  renderSetupPlayersPreview();
+  populatePlayerDropdown();
+}
+
+function removePlayer(idx) {
+  const name = state.players[idx];
+  state.players.splice(idx, 1);
+  Object.keys(manualPins).forEach(t => { if (manualPins[t] === name) delete manualPins[t]; });
+  document.getElementById('player-count').innerText = state.players.length;
+  document.getElementById('generate-sweep-btn').disabled = state.players.length === 0;
+  renderSetupPlayersPreview();
+  populatePlayerDropdown();
+  renderAssignSummary();
+}
+
+function renderSetupPlayersPreview() {
+  document.getElementById('staging-players-list').innerHTML = state.players.map((p, idx) => `
+    <li class="staging-item">
+      <span>${escapeHTML(p)}</span>
+      <span style="color:var(--accent);cursor:pointer;font-weight:bold;" onclick="removePlayer(${idx})">✕</span>
+    </li>`).join('');
+}
+
+// ─── MANUAL ASSIGNMENTS ───────────────────────────────────────────────────
+function populateTeamDropdown() {
+  const sel = document.getElementById('manual-team-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select a team —</option>';
+  ALL_TEAMS_FLAT.forEach(team => {
+    const opt = document.createElement('option');
+    opt.value = team;
+    opt.textContent = team + (manualPins[team] ? ` ✓ ${manualPins[team]}` : '');
+    if (manualPins[team]) opt.style.color = 'var(--secondary)';
+    sel.appendChild(opt);
+  });
+  if (cur) sel.value = cur;
+}
+
+function populatePlayerDropdown() {
+  const sel = document.getElementById('manual-player-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select participant —</option>';
+  state.players.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p; sel.appendChild(opt);
+  });
+  if (cur) sel.value = cur;
+}
+
+function addManualAssignment() {
+  const team   = document.getElementById('manual-team-select').value;
+  const player = document.getElementById('manual-player-select').value;
+  const conflictEl = document.getElementById('assign-conflict-msg');
+  conflictEl.classList.add('hidden');
+  if (!team || !player) {
+    conflictEl.textContent = '⚠️ Please select both a team and a participant.';
+    conflictEl.classList.remove('hidden'); return;
+  }
+  if (!state.players.includes(player)) {
+    conflictEl.textContent = `⚠️ "${player}" is not in the participant list. Add them first.`;
+    conflictEl.classList.remove('hidden'); return;
+  }
+  if (manualPins[team] && manualPins[team] !== player) {
+    conflictEl.textContent = `ℹ️ "${team}" was pinned to ${manualPins[team]} — reassigned to ${player}.`;
+    conflictEl.classList.remove('hidden');
+  }
+  manualPins[team] = player;
+  populateTeamDropdown();
+  renderAssignSummary();
+  document.getElementById('manual-team-select').value = '';
+  document.getElementById('manual-player-select').value = '';
+}
+
+function removePin(team) { delete manualPins[team]; populateTeamDropdown(); renderAssignSummary(); }
+
+function clearAllManualAssignments() {
+  if (!Object.keys(manualPins).length) return;
+  if (!confirm('Clear all pinned assignments?')) return;
+  manualPins = {}; populateTeamDropdown(); renderAssignSummary();
+}
+
+function renderAssignSummary() {
+  const pins = Object.keys(manualPins);
+  const summaryEl = document.getElementById('assign-summary');
+  if (!pins.length) { summaryEl.classList.add('hidden'); return; }
+  summaryEl.classList.remove('hidden');
+  document.getElementById('pinned-count').textContent = pins.length;
+  document.getElementById('assign-summary-rows').innerHTML = Object.entries(manualPins).map(([team, player]) => `
+    <div class="assign-summary-row">
+      <span class="team-cell">${getFlagImg(team)} <strong>${escapeHTML(team)}</strong></span>
+      <span style="color:#718096">→</span>
+      <span class="assign-tag">${escapeHTML(player)}</span>
+      <span style="color:var(--accent);cursor:pointer;font-weight:bold;margin-left:8px;"
+            onclick="removePin('${team.replace(/'/g,"\\'")}')">✕</span>
+    </div>`).join('');
+}
+
+// ─── GENERATE ─────────────────────────────────────────────────────────────
+function buildDistributionsString() {
+  const flat = Object.values(NATIONS_STAGING).flat();
+  const invalid = Object.entries(manualPins).filter(([,p]) => !state.players.includes(p));
+  if (invalid.length) { alert(`Pinned participants no longer exist: ${invalid.map(x=>x[1]).join(', ')}`); return; }
+
+  const pinned  = new Set(Object.keys(manualPins));
+  const shuffled = flat.filter(t => !pinned.has(t)).sort(() => Math.random() - 0.5);
+
+  state.assignments     = { ...manualPins };
+  state.assignmentSource = {};
+  Object.keys(manualPins).forEach(t => { state.assignmentSource[t] = 'manual'; });
+  shuffled.forEach((team, idx) => {
+    state.assignments[team]      = state.players[idx % state.players.length];
+    state.assignmentSource[team] = 'random';
+  });
+
+  state.groupMatches = [];
+  Object.keys(NATIONS_STAGING).forEach(gl => {
+    const list = NATIONS_STAGING[gl];
+    for (let i=0; i<list.length; i++)
+      for (let j=i+1; j<list.length; j++)
+        state.groupMatches.push({ id:`G-${gl}-${i}-${j}`, group:gl, home:list[i], away:list[j] });
+  });
+
+  state.koMatches.r16   = Array.from({length:8}, (_,i)=>({id:`R16-${i}`, type:'r16',  home:'',away:''}));
+  state.koMatches.qf    = Array.from({length:4}, (_,i)=>({id:`QF-${i}`,  type:'qf',   home:'',away:''}));
+  state.koMatches.sf    = Array.from({length:2}, (_,i)=>({id:`SF-${i}`,  type:'sf',   home:'',away:''}));
+  state.koMatches.final = [{id:'FINAL-0', type:'final', home:'', away:''}];
+  state.isGenerated = true;
+
+  document.getElementById('output-string-payload').value = btoa(JSON.stringify(state));
+  document.getElementById('output-block').classList.remove('hidden');
+}
+
+// ─── LIVE FEED ─────────────────────────────────────────────────────────────
+async function fetchLiveScores() {
+  const banner = document.getElementById('api-status-banner');
+  banner.innerHTML = `<span class="live-pulse"></span> Fetching Euro results from openfootball…`;
+
+  try {
+    const response = await fetch(OPENFOOTBALL_URL);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+
+    liveScoresCache = {};
+
+    (data.matches || []).forEach(match => {
+      const home = normaliseName(match.team1);
+      const away = normaliseName(match.team2);
+      const key  = `${home}-${away}`;
+
+      if (match.score && match.score.ft && match.score.ft.length === 2) {
+        let hScore = match.score.ft[0];
+        let aScore = match.score.ft[1];
+        let hPen = null, aPen = null;
+        
+        // Grab Extra Time scores if available (overrides FT in KOs)
+        if (match.score.et && match.score.et.length === 2) {
+          hScore = match.score.et[0];
+          aScore = match.score.et[1];
+        }
+        // Grab Penalties if match ended in shootout
+        if (match.score.p && match.score.p.length === 2) {
+          hPen = match.score.p[0];
+          aPen = match.score.p[1];
+        }
+
+        liveScoresCache[key] = {
+          homeScore: hScore,
+          awayScore: aScore,
+          homePen: hPen,
+          awayPen: aPen,
+          status: 'completed'
+        };
+      }
+      else if (match.score && match.score.ht) {
+        liveScoresCache[key] = {
+          homeScore: match.score.ht[0],
+          awayScore: match.score.ht[1],
+          status: 'in_progress'
+        };
+      } else {
+        liveScoresCache[key] = { homeScore: null, awayScore: null, status: 'upcoming' };
+      }
+    });
+
+    const played = Object.values(liveScoresCache).filter(m => m.status !== 'upcoming').length;
+    banner.style.backgroundColor = "#e6fffa"; banner.style.color = "#234e52";
+    banner.innerHTML = `✅ <strong>Data updated</strong> — ${played} match${played!==1?'es':''} with results. `
+      + `<span class="data-note">Source: <a href="https://github.com/openfootball/euro.json" target="_blank">openfootball/euro.json</a> (updated ~daily)</span>`;
+
+    processAndCalculateStandings();
+
+  } catch(error) {
+    console.warn('openfootball fetch failed:', error);
+    banner.style.backgroundColor = "#fffaf0"; banner.style.color = "#744210";
+    banner.innerHTML = `⚠️ <strong>Score feed unavailable.</strong> Displaying fixtures without results. Will retry in 5 minutes.`;
+    mockLiveCalculationsPipeline();
+  }
+}
+
+function mockLiveCalculationsPipeline() {
+  if (!Object.keys(liveScoresCache).length) {
+    state.groupMatches.forEach(m => {
+      liveScoresCache[`${m.home}-${m.away}`] = { homeScore: null, awayScore: null, status: 'upcoming' };
+    });
+  }
+  processAndCalculateStandings();
+}
+
+// ─── STANDINGS ─────────────────────────────────────────────────────────────
+function processAndCalculateStandings() {
+  const standings = {};
+  Object.keys(NATIONS_STAGING).forEach(gl => {
+    standings[gl] = NATIONS_STAGING[gl].map(t => ({
+      team:t, player:state.assignments[t]||'System', p:0, w:0, d:0, l:0, gf:0, ga:0, gd:0
+    }));
+  });
+
+  state.groupMatches.forEach(m => {
+    const lookup = liveScoresCache[`${m.home}-${m.away}`] || liveScoresCache[`${m.away}-${m.home}`];
+    if (lookup && lookup.homeScore !== null) {
+      const reversed = !!liveScoresCache[`${m.away}-${m.home}`] && !liveScoresCache[`${m.home}-${m.away}`];
+      m.homeScore = reversed ? lookup.awayScore : lookup.homeScore;
+      m.awayScore = reversed ? lookup.homeScore : lookup.awayScore;
+      m.status    = lookup.status;
+
+      const gl = standings[m.group];
+      const h  = gl.find(t => t.team===m.home);
+      const a  = gl.find(t => t.team===m.away);
+      if (!h || !a) return;
+
+      h.gf+=m.homeScore; h.ga+=m.awayScore; h.gd=h.gf-h.ga; h.p += (m.homeScore>m.awayScore?3:m.homeScore===m.awayScore?1:0);
+      a.gf+=m.awayScore; a.ga+=m.homeScore; a.gd=a.gf-a.ga; a.p += (m.awayScore>m.homeScore?3:m.homeScore===m.awayScore?1:0);
+      if (m.homeScore>m.awayScore)       { h.w++; a.l++; }
+      else if (m.awayScore>m.homeScore)  { a.w++; h.l++; }
+      else                               { h.d++; a.d++; }
+    }
+  });
+
+  // Strict sorting: Points, then GD, then GF, finally alphabetical for absolute ties (like Euro 2024 Den/Svn case)
+  Object.keys(standings).forEach(g => {
+    standings[g].sort((a,b) => b.p - a.p || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team));
+  });
+
+  const thirds = Object.keys(standings).map(g => ({...standings[g][2], group:g}));
+  thirds.sort((a,b) => b.p - a.p || b.gd - a.gd || b.gf - a.gf);
+  
+  const wildcards = thirds.slice(0,4);
+  const wcGroups = wildcards.map(w => w.group).sort().join(''); // Maps out the 4 groups providing wildcards (e.g. "CDEF")
+
+  // UEFA Rulebook matrix mapping for mapping Group Winners to the 3rd placed teams they play
+  const wcMapping = {
+    "ABCD": ["A", "D", "B", "C"], "ABCE": ["A", "E", "B", "C"], "ABCF": ["A", "F", "B", "C"],
+    "ABDE": ["D", "E", "A", "B"], "ABDF": ["D", "F", "A", "B"], "ABEF": ["E", "F", "B", "A"],
+    "ACDE": ["E", "D", "C", "A"], "ACDF": ["F", "D", "C", "A"], "ACEF": ["E", "F", "C", "A"],
+    "ADEF": ["E", "F", "D", "A"], "BCDE": ["E", "D", "B", "C"], "BCDF": ["F", "D", "C", "B"],
+    "BCEF": ["F", "E", "C", "B"], "BDEF": ["F", "E", "D", "B"], "CDEF": ["F", "E", "D", "C"]
+  };
+  
+  const allocation = wcMapping[wcGroups] || ["","","",""];
+  const getWC = (g) => wildcards.find(w => w.group === g)?.team || `3rd Group ${g}`;
+
+  const winners={}, runners={};
+  Object.keys(standings).forEach(g=>{ winners[g]=standings[g][0].team; runners[g]=standings[g][1].team; });
+
+  const r16Layout = [
+    {home: winners['B'], away: getWC(allocation[0])},
+    {home: winners['A'], away: runners['C']},
+    {home: winners['F'], away: getWC(allocation[3])},
+    {home: runners['D'], away: runners['E']},
+    {home: winners['E'], away: getWC(allocation[2])},
+    {home: winners['D'], away: runners['F']},
+    {home: winners['C'], away: getWC(allocation[1])},
+    {home: runners['A'], away: runners['B']}
+  ];
+
+  r16Layout.forEach((layout,i) => {
+    state.koMatches.r16[i].home=layout.home; state.koMatches.r16[i].away=layout.away;
+    resolveKO(state.koMatches.r16[i]);
+  });
+  
+  propagateKO('r16','qf'); propagateKO('qf','sf'); propagateKO('sf','final');
+
+  renderAssignmentsGridUI();
+  renderGroupTablesUI(standings, wildcards);
+  renderFixturesUI();
+  renderBracketUI();
+}
+
+function resolveKO(m) {
+  if (!m.home||m.home.includes('Spot')||!m.away) return;
+  const lookup = liveScoresCache[`${m.home}-${m.away}`] || liveScoresCache[`${m.away}-${m.home}`];
+  
+  if (lookup && lookup.homeScore !== null) {
+    const reversed = !!liveScoresCache[`${m.away}-${m.home}`] && !liveScoresCache[`${m.home}-${m.away}`];
+    
+    m.homeScore = reversed ? lookup.awayScore : lookup.homeScore;
+    m.awayScore = reversed ? lookup.homeScore : lookup.awayScore;
+    const hPen = reversed ? lookup.awayPen : lookup.homePen;
+    const aPen = reversed ? lookup.homePen : lookup.awayPen;
+
+    m.penalties = hPen !== null ? `(${hPen}-${aPen} pens)` : '';
+
+    if (m.homeScore > m.awayScore) m.winner = m.home;
+    else if (m.awayScore > m.homeScore) m.winner = m.away;
+    else if (hPen !== null && hPen > aPen) m.winner = m.home;
+    else if (hPen !== null && aPen > hPen) m.winner = m.away;
+    else m.winner = null;
+  }
+}
+
+function propagateKO(curr, next) {
+  for (let i=0; i<state.koMatches[next].length; i++) {
+    const w1 = getWinner(state.koMatches[curr][i*2]);
+    const w2 = getWinner(state.koMatches[curr][i*2+1]);
+    state.koMatches[next][i].home = w1||`Winner Match ${i*2+1}`;
+    state.koMatches[next][i].away = w2||`Winner Match ${i*2+2}`;
+    resolveKO(state.koMatches[next][i]);
+  }
+}
+
+function getWinner(m) {
+  if (!m||m.homeScore==null||m.awayScore==null) return null;
+  return m.winner||null;
+}
+
+function getFlagImg(name) {
+  const code = FLAG_CODES[name];
+  return code ? `<img src="https://flagcdn.com/w20/${code}.png" class="flag" alt="">` : `<span class="flag" style="background:#cbd5e0"></span>`;
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function renderAssignmentsGridUI() {
+  const container = document.getElementById('pool-assignments-ui');
+  container.innerHTML = '';
+  const inverted = {};
+  state.players.forEach(p => { inverted[p] = []; });
+  Object.keys(state.assignments).forEach(t => { if (inverted[state.assignments[t]]) inverted[state.assignments[t]].push(t); });
+
+  Object.keys(inverted).forEach(player => {
+    const card = document.createElement('div'); card.className='card';
+    card.style.cssText='display:flex;flex-direction:column;gap:12px;';
+    const badges = inverted[player].map(t => {
+      const src = state.assignmentSource?.[t];
+      const badge = src==='manual' ? `<span class="badge-manual">📌 Manual</span>` : `<span class="badge-random">🎲 Random</span>`;
+      return `<div class="team-badge">${getFlagImg(t)} <strong>${t}</strong>${badge}</div>`;
+    }).join('');
+    card.innerHTML = `
+      <div>
+        <span style="font-size:0.8rem;text-transform:uppercase;color:#718096;font-weight:bold;">Participant</span>
+        <h3 style="font-size:1.4rem;color:var(--dark);margin-top:2px;">${escapeHTML(player)}</h3>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">${badges||'<span style="color:#a0aec0;font-size:0.9rem;">No assignments</span>'}</div>`;
+    container.appendChild(card);
+  });
+}
+
+function renderGroupTablesUI(standings, wildcards) {
+  const container = document.getElementById('groups-tables-ui'); container.innerHTML='';
+  Object.keys(standings).forEach(g => {
+    const card = document.createElement('div'); card.className='card group-container';
+    let html = `<h2>Group ${g}</h2><table><thead><tr><th>Team</th><th>GD</th><th>Pts</th></tr></thead><tbody>`;
+    standings[g].forEach((row,idx) => {
+      const rCls = idx<2 ? 'qualify-direct' : (wildcards.some(w=>w.team===row.team&&w.p>0)?'qualify-wildcard':'');
+      html += `<tr class="${rCls}"><td>
+        <div class="team-cell">${getFlagImg(row.team)}<div><strong>${row.team}</strong><br>
+        <small style="color:#718096">(${escapeHTML(row.player)})</small></div></div></td>
+        <td>${row.gd>0?'+'+row.gd:row.gd}</td><td><strong>${row.p}</strong></td></tr>`;
+    });
+    card.innerHTML = html+'</tbody></table>'; container.appendChild(card);
+  });
+}
+
+function renderFixturesUI() {
+  const container = document.getElementById('group-fixtures-ui'); container.innerHTML='';
+  let currentGroup='';
+  state.groupMatches.forEach(m => {
+    if (m.group!==currentGroup) {
+      currentGroup=m.group;
+      const h3=document.createElement('h3'); h3.style.cssText='margin:20px 0 10px 0;color:var(--primary);';
+      h3.innerText=`Group ${currentGroup} Results`; container.appendChild(h3);
+    }
+    const isLive = m.status==='in_progress';
+    const row=document.createElement('div'); row.className=`match-row ${isLive?'live-active':''}`;
+    const hScore = m.homeScore!=null ? m.homeScore : '-';
+    const aScore = m.awayScore!=null ? m.awayScore : '-';
+    row.innerHTML=`
+      <div class="match-team home">
+        <span>${m.home}<br><small style="font-weight:normal;color:#718096">(${escapeHTML(state.assignments[m.home]||'')})</small></span>
+        ${getFlagImg(m.home)}
+      </div>
+      <div class="match-scores">${hScore} <span style="font-size:0.7rem;color:#a0aec0">VS</span> ${aScore}</div>
+      <div class="match-team away">
+        ${getFlagImg(m.away)}
+        <span>${m.away}<br><small style="font-weight:normal;color:#718096">(${escapeHTML(state.assignments[m.away]||'')})</small></span>
+      </div>`;
+    container.appendChild(row);
+  });
+}
+
+function renderBracketUI() {
+  const container = document.getElementById('bracket-tree-ui'); container.innerHTML='';
+  const rounds = [
+    {key:'r16',title:'Round of 16'},
+    {key:'qf',title:'Quarter-Finals'},{key:'sf',title:'Semi-Finals'},{key:'final',title:'Grand Final'}
+  ];
+  rounds.forEach(r => {
+    const col=document.createElement('div'); col.className='bracket-round';
+    col.innerHTML=`<div class="bracket-round-title">${r.title}</div>`;
+    state.koMatches[r.key].forEach(m => {
+      const card=document.createElement('div'); card.className='match-row'; card.style.cssText='flex-direction:column;padding:8px;';
+      const hO = state.assignments[m.home] ? `(${state.assignments[m.home]})` : '';
+      const aO = state.assignments[m.away] ? `(${state.assignments[m.away]})` : '';
+      const hs = m.homeScore!=null ? m.homeScore : '';
+      const as_ = m.awayScore!=null ? m.awayScore : '';
+      const pens = m.penalties ? `<br><small style="color:var(--accent);font-size:0.75rem;display:block;margin-top:4px;">${m.penalties}</small>` : '';
+      
+      card.innerHTML=`
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center;font-size:0.8rem;">
+          <div style="font-weight:bold;width:40%;">${getFlagImg(m.home)} ${m.home}<br><small style="color:#718096">${escapeHTML(hO)}</small></div>
+          <div style="width:20%;text-align:center;font-weight:bold;line-height:1.2;">${hs} : ${as_}${pens}</div>
+          <div style="font-weight:bold;width:40%;text-align:right;">${m.away} ${getFlagImg(m.away)}<br><small style="color:#718096">${escapeHTML(aO)}</small></div>
+        </div>`;
+      col.appendChild(card);
+    });
+    container.appendChild(col);
+  });
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`tab-${id}`).classList.remove('hidden');
+  document.getElementById(`btn-tab-${id}`).classList.add('active');
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+</script>
+</body>
+</html>
